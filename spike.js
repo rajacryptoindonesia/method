@@ -3,8 +3,8 @@ const url = require('url');
 const net = require('net');
 const cluster = require('cluster');
 
-if (process.argv.length <= 4) {
-    console.log("node spike.js <url> <threads> <time> <port(optional)>");
+if (process.argv.length <= 5) { // Ensure port is provided
+    console.log("node spike.js <url> <threads> <time> <port>");
     process.exit(-1);
 }
 
@@ -13,7 +13,7 @@ var parsed = url.parse(target);
 var host = parsed.host;
 var threads = process.argv[3];
 var time = process.argv[4];
-var port = process.argv[5] || 5051; // Default to port 80 if no port is provided
+var port = process.argv[5]; // Port is mandatory and must be provided
 
 require('events').EventEmitter.defaultMaxListeners = 0;
 process.setMaxListeners(0);
