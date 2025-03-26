@@ -13,7 +13,7 @@ var parsed = url.parse(target);
 var host = parsed.host;
 var threads = process.argv[3];
 var time = process.argv[4];
-var port = process.argv[5] || 80; // Default to port 80 if no port is provided
+var port = process.argv[5] || 5051; // Default to port 80 if no port is provided
 
 require('events').EventEmitter.defaultMaxListeners = 0;
 process.setMaxListeners(0);
